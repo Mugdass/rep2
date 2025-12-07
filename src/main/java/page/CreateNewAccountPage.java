@@ -1,150 +1,71 @@
 package page;
 
-import java.util.concurrent.TimeUnit;
-
-import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+import java.time.Duration;
+
 import model.CreateNewAccountModel;
 
-public class CreateNewAccountPage extends CreateNewAccountModel{
-	
-	
+public class CreateNewAccountPage extends CreateNewAccountModel {
 
-	public CreateNewAccountPage(WebDriver driver) {
-		super(driver);
-		
+    private WebDriverWait wait;
 
-	}
-	
-	
-	public void typeFirstName(String first) throws InterruptedException {
-		
-		Thread.sleep(1550);
-		WebElement firstname = getFirstName();
-		firstname.clear();
-		
-		firstname.sendKeys(first);
-		
-		
-		
-		
-	}
-	
-	
-	public void typeLastName(String last) throws InterruptedException {
-		WebElement lastname = getLastName();
-		lastname.clear();
-		
-		lastname.sendKeys(last);
-		//Thread.sleep(1550);
-	}
-	
-	
-	
-	
-	public void typeNumber(String num) throws InterruptedException {
-		WebElement number = getNumber();
-		number.clear();
-		
-		number.sendKeys(num);
-		//Thread.sleep(1550);
-	}
-	
-	
-	public void typePassword(String p) throws InterruptedException {
-		WebElement pass = getPassword();
-		pass.clear();
-		
-		pass.sendKeys(p);
-		//Thread.sleep(1550);
-	}
-	
-	
-	
-	public void typeMonth(String m) throws InterruptedException {
-		WebElement month = getMonth();
-		Select month2 = new Select(month);
-		
-		//Thread.sleep(1550);
-		
-	
-		
-		month2.selectByVisibleText(m);
-		//Thread.sleep(1550);
-		
+    public CreateNewAccountPage(WebDriver driver) {
+        super(driver);
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10)); // 10s explicit wait
+    }
 
-	}
-	
+    public void typeFirstName(String first) {
+        WebElement firstname = wait.until(ExpectedConditions.visibilityOf(getFirstName()));
+        firstname.clear();
+        firstname.sendKeys(first);
+    }
 
-	
-	
-	public void typeDay(String d) throws InterruptedException {
-		WebElement day = getDay();
-		Select day2 = new Select(day);
-		
-		Thread.sleep(1550);
-		day2.selectByVisibleText(d);
-		
-	}
-	
-	
-	
-	
-	public void typeYear(String y) throws InterruptedException {
-		WebElement year = getYear();
-		Select year2 = new Select(year);
-		
-		Thread.sleep(1550);
-		year2.selectByVisibleText(y);
-		
-		
-		
-		
-		
-		
-		
-		
-	}
-	
-	
-	
+    public void typeLastName(String last) {
+        WebElement lastname = wait.until(ExpectedConditions.visibilityOf(getLastName()));
+        lastname.clear();
+        lastname.sendKeys(last);
+    }
 
-	
+    public void typeNumber(String num) {
+        WebElement number = wait.until(ExpectedConditions.visibilityOf(getNumber()));
+        number.clear();
+        number.sendKeys(num);
+    }
 
-	
-public void typeGender(String gen) throws InterruptedException {
-		
+    public void typePassword(String p) {
+        WebElement pass = wait.until(ExpectedConditions.visibilityOf(getPassword()));
+        pass.clear();
+        pass.sendKeys(p);
+    }
 
-		WebElement gg= getGender(gen);
-		
-		
-		
-		Thread.sleep(1550);
-		gg.click();
-		
-		
-		
-		
-		
-		
-	}
+    public void typeMonth(String m) {
+        WebElement month = wait.until(ExpectedConditions.visibilityOf(getMonth()));
+        Select selectMonth = new Select(month);
+        selectMonth.selectByVisibleText(m);
+    }
 
+    public void typeDay(String d) {
+        WebElement day = wait.until(ExpectedConditions.visibilityOf(getDay()));
+        Select selectDay = new Select(day);
+        selectDay.selectByVisibleText(d);
+    }
 
+    public void typeYear(String y) {
+        WebElement year = wait.until(ExpectedConditions.visibilityOf(getYear()));
+        Select selectYear = new Select(year);
+        selectYear.selectByVisibleText(y);
+    }
 
-
-
-
-	
-	
-
+    public void typeGender(String gen) {
+        WebElement gender = wait.until(ExpectedConditions.elementToBeClickable(getGender(gen)));
+        gender.click();
+    }
 }
-	
+
 
 
