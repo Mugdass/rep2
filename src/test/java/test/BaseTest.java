@@ -16,9 +16,20 @@ public class BaseTest {
         if (driver == null) {
             ChromeOptions options = new ChromeOptions();
             options.addArguments("--disable-notifications");
-            // options.addArguments("--headless"); // optional for CI
+            options.addArguments("--no-sandbox"); // required for Linux CI
+            options.addArguments("--disable-dev-shm-usage"); // avoid resource issues
+
+            // Run headless on CI (GitHub Actions) but visible locally
+            if (System.getenv("GITHUB_ACTIONS") != null) {
+                options.addArguments("--headless=new");
+                options.addArguments("--window-size=1920,1080");
+                options.addArguments("--disable-gpu");
+            } else {
+                driver = new ChromeDriver(options);
+                driver.manage().window().maximize();
+            }
+
             driver = new ChromeDriver(options);
-            driver.manage().window().maximize();
         }
         driver.get("https://www.facebook.com");
         homePage = new HomePage(driver);
