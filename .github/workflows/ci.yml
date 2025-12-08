@@ -1,105 +1,68 @@
-name: Java CI with Maven
+name: Java Selenium CI
 
 on:
-  schedule:
-    - cron: "*/30 * * * *"
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
+          distribution: temurin
           java-version: '17'
-          distribution: 'temurin'
 
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y unzip wget curl
 
-      # --- Install Google Chrome ---
       - name: Install Google Chrome
-        run: |
-          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt-get update
-          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
-          google-chrome --version
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
 
-      # --- Install ChromeDriver (LATEST_RELEASE to avoid Chrome 143 issue) ---
-      - name: Install ChromeDriver (latest compatible)
+      - name: Install ChromeDriver for current Chrome
         run: |
-          sudo apt-get install -y unzip
-          DRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE")
-          echo "Using ChromeDriver version: $DRIVER_VERSION"
-          wget -q https://chromedriver.storage.googleapis.com/${DRIVER_VERSION}/chromedriver_linux64.zip
+          sudo rm -f /usr/local/bin/chromedriver
+          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+          echo "Detected Chrome version: $CHROME_VERSION"
+          DRIVER_VERSION=$(curl -sS "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+          echo "Installing ChromeDriver version: $DRIVER_VERSION"
+          wget -q "https://chromedriver.storage.googleapis.com/${DRIVER_VERSION}/chromedriver_linux64.zip"
           unzip chromedriver_linux64.zip
           sudo mv chromedriver /usr/local/bin/
           sudo chmod +x /usr/local/bin/chromedriver
           chromedriver --version
 
-      # --- Xvfb + screen recording ---
-      - name: Start Xvfb + Start Screen Recording
-        run: |
-          export DISPLAY=:99
-          Xvfb :99 -screen 0 1920x1080x24 &
-          sleep 3
-          mkdir -p target/video
-          ffmpeg -y -video_size 1920x1080 -framerate 15 -f x11grab -i :99 \
-            -vcodec libx264 target/video/test-recording.mp4 &
-          echo $! > ffmpeg.pid
-
-      # --- Build project ---
-      - name: Build
+      - name: Build with Maven
         run: mvn clean install -B
 
-      # --- Run Selenium tests ---
       - name: Run tests
-        env:
-          DISPLAY: :99
         run: mvn test -B
 
-      # --- Stop FFmpeg safely ---
-      - name: Stop recording (safe)
-        if: always()
-        run: |
-          if [ -f ffmpeg.pid ]; then
-            kill $(cat ffmpeg.pid) || true
-          else
-            echo "Recording not started — skipping kill."
-          fi
-
-      # --- Upload video ---
-      - name: Upload Selenium Video
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: selenium-video
-          path: target/video/test-recording.mp4
-
-      # --- Upload Maven test reports ---
-      - name: Upload Surefire reports
-        if: always()
+      - name: Upload Surefire Reports
         uses: actions/upload-artifact@v4
         with:
           name: surefire-reports
-          path: target/surefire-reports/
+          path: target/surefire-reports
 
-      # --- Upload screenshots (optional) ---
-      - name: Upload Screenshots
-        if: always()
+      - name: Upload Test Video (if any)
         uses: actions/upload-artifact@v4
         with:
-          name: selenium-screenshots
+          name: test-recording
+          path: target/video/test-recording.mp4
+
+      - name: Upload Screenshots (if any)
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
           path: target/screenshots/
