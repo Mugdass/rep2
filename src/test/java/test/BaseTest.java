@@ -19,8 +19,9 @@ public class BaseTest {
             options.addArguments("--no-sandbox"); 
             options.addArguments("--disable-dev-shm-usage");
 
-            // Only run headless locally if desired; CI will use Xvfb to "see" the browser
-            if (System.getenv("LOCAL_HEADLESS") != null) {
+            // Run headless automatically in CI
+            String githubActions = System.getenv("GITHUB_ACTIONS");
+            if (githubActions != null && githubActions.equals("true")) {
                 options.addArguments("--headless=new");
                 options.addArguments("--window-size=1920,1080");
                 options.addArguments("--disable-gpu");
