@@ -16,21 +16,20 @@ public class BaseTest {
         if (driver == null) {
             ChromeOptions options = new ChromeOptions();
             options.addArguments("--disable-notifications");
-            options.addArguments("--no-sandbox"); // required for Linux CI
-            options.addArguments("--disable-dev-shm-usage"); // avoid resource issues
+            options.addArguments("--no-sandbox"); 
+            options.addArguments("--disable-dev-shm-usage");
 
-            // Run headless on CI (GitHub Actions) but visible locally
-            if (System.getenv("GITHUB_ACTIONS") != null) {
+            // Only run headless locally if desired; CI will use Xvfb to "see" the browser
+            if (System.getenv("LOCAL_HEADLESS") != null) {
                 options.addArguments("--headless=new");
                 options.addArguments("--window-size=1920,1080");
                 options.addArguments("--disable-gpu");
-            } else {
-                driver = new ChromeDriver(options);
-                driver.manage().window().maximize();
             }
 
             driver = new ChromeDriver(options);
+            driver.manage().window().maximize();
         }
+
         driver.get("https://www.facebook.com");
         homePage = new HomePage(driver);
     }
