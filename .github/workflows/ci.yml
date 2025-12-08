@@ -6,11 +6,11 @@ on:
   pull_request:
 
 jobs:
-  test:
+  selenium-tests:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Checkout the repo
+    # 1. Checkout the code
     - name: Checkout repository
       uses: actions/checkout@v3
 
@@ -26,7 +26,7 @@ jobs:
       with:
         chromedriver-version: latest
 
-    # 4. Install dependencies for Selenium & Xvfb
+    # 4. Install dependencies (Xvfb for virtual display, ffmpeg for recording)
     - name: Install dependencies
       run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg libnss3 libgconf-2-4
 
@@ -48,8 +48,8 @@ jobs:
       env:
         DISPLAY: :99
 
-    # 8. Upload video artifact
-    - name: Upload video
+    # 8. Upload recorded video
+    - name: Upload Selenium test video
       uses: actions/upload-artifact@v3
       with:
         name: selenium-test-video
