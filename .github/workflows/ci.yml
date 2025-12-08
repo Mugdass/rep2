@@ -1,53 +1,56 @@
-name: Java Maven Selenium CI
+name: Selenium CI
 
 on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main ]
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04
+  test:
+    runs-on: ubuntu-latest
 
     steps:
+    # 1. Checkout the repo
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # Update APT and install dependencies
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          openjdk-17-jdk \
-          maven \
-          unzip \
-          wget \
-          xvfb \
-          libnss3 \
-          libnspr4 \
-          libxss1 \
-          libgconf-2-4 || true  # fallback for older packages
-
-    # Install Google Chrome
-    - name: Install Google Chrome
-      run: |
-        wget -qO- https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb > chrome.deb
-        sudo apt install -y ./chrome.deb
-        google-chrome --version
-
-    # Set up ChromeDriver matching Chrome
-    - name: Setup ChromeDriver
-      uses: nanasess/setup-chromedriver@v2
+    # 2. Set up Chrome
+    - name: Setup Chrome
+      uses: browser-actions/setup-chrome@v1
       with:
-        chrome-version: stable
+        chrome-version: latest
 
-    # Display versions for debug
-    - name: Display Chrome & ChromeDriver versions
-      run: |
-        google-chrome --version
-        chromedriver --version
+    # 3. Set up ChromeDriver
+    - name: Setup ChromeDriver
+      uses: nanasess/setup-chromedriver@v1
+      with:
+        chromedriver-version: latest
 
-    # Run Maven build and tests
-    - name: Build with Maven
-      run: mvn clean install -B
+    # 4. Install dependencies for Selenium & Xvfb
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg libnss3 libgconf-2-4
+
+    # 5. Start virtual display
+    - name: Start virtual display
+      run: Xvfb :99 -screen 0 1920x1080x24 &
+      env:
+        DISPLAY: :99
+
+    # 6. Start screen recording
+    - name: Start screen recording
+      run: ffmpeg -video_size 1920x1080 -framerate 25 -f x11grab -i :99 -y target/video/test.mp4 &
+      env:
+        DISPLAY: :99
+
+    # 7. Run Maven Selenium tests
+    - name: Run Selenium tests
+      run: mvn test
+      env:
+        DISPLAY: :99
+
+    # 8. Upload video artifact
+    - name: Upload video
+      uses: actions/upload-artifact@v3
+      with:
+        name: selenium-test-video
+        path: target/video/test.mp4
