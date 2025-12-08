@@ -1,12 +1,12 @@
 name: Java CI with Maven
 
 on:
+  schedule:
+    - cron: "*/30 * * * *"
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build:
@@ -27,15 +27,45 @@ jobs:
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+          restore-keys: ${{ runner.os }}-maven-
 
-      - name: Install dependencies & build
-        run: mvn clean install -B
+      # Install Chrome + chromedriver + ffmpeg
+      - name: Install Chrome and FFmpeg
+        run: |
+          sudo apt update
+          sudo apt install -y chromium-browser chromium-chromedriver ffmpeg xvfb
+
+      # Start Xvfb display + begin recording the virtual screen
+      - name: Start Xvfb + Start Screen Recording
+        run: |
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1920x1080x24 &     # Launch virtual display
+          sleep 3
+          mkdir -p target/video
+          ffmpeg -y -video_size 1920x1080 -framerate 15 -f x11grab -i :99 \
+            -vcodec libx264 target/video/test-recording.mp4 &
+          echo $! > ffmpeg.pid
 
       - name: Run tests
-        run: mvn test -B -Dselenium.headless=true
+        env:
+          DISPLAY: :99
+        run: mvn test -B -Dselenium.headless=false
 
+      # Stop video recording
+      - name: Stop recording
+        if: always()
+        run: |
+          kill $(cat ffmpeg.pid)
+
+      # Upload video
+      - name: Upload Selenium test video
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-video
+          path: target/video/test-recording.mp4
+
+      # Upload regular reports
       - name: Upload Surefire test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -43,3 +73,10 @@ jobs:
           name: surefire-reports
           path: target/surefire-reports/
 
+      # Upload screenshots if you also want them
+      - name: Upload Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-screenshots
+          path: target/screenshots/
