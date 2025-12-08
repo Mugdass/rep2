@@ -11,50 +11,54 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-    # 1️⃣ Checkout repository
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      # 1️⃣ Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    # 2️⃣ Set up Java
-    - name: Set up JDK 17
-      uses: actions/setup-java@v3
-      with:
-        distribution: temurin
-        java-version: 17
+      # 2️⃣ Set up JDK
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: temurin
 
-    # 3️⃣ Update apt and install dependencies
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y wget unzip xvfb libxi6 fonts-liberation
+      # 3️⃣ Update apt and install dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip xvfb libxi6 libgconf-2-4 libnss3 libxss1 libglib2.0-0
 
-    # 4️⃣ Install Google Chrome
-    - name: Install Google Chrome
-      run: |
-        wget -q -O google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome.deb || sudo apt-get -f install -y
-        google-chrome --version
+      # 4️⃣ Install Google Chrome
+      - name: Install Google Chrome
+        run: |
+          wget -q -O google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt install -y ./google-chrome.deb
 
-    # 5️⃣ Install matching ChromeDriver
-    - name: Setup ChromeDriver
-      uses: nanasess/setup-chromedriver@v1
-      with:
-        chromedriver-version: latest # automatically matches installed Chrome
+      # 5️⃣ Set up matching ChromeDriver
+      - name: Setup ChromeDriver
+        uses: actions/setup-chromedriver@v2
+        with:
+          chrome-version: stable
 
-    # 6️⃣ Build and run Maven tests
-    - name: Build with Maven
-      run: mvn clean install -B
+      # 6️⃣ Maven build and test
+      - name: Build with Maven
+        run: mvn clean install -B
 
-    # 7️⃣ Upload test artifacts
-    - name: Upload test artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: surefire-reports
-        path: target/surefire-reports
+      # 7️⃣ Upload test artifacts (screenshots, reports, videos)
+      - name: Upload Surefire Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
 
-    # 8️⃣ Upload screenshots (if any)
-    - name: Upload screenshots
-      uses: actions/upload-artifact@v4
-      with:
-        name: screenshots
-        path: target/screenshots
+      - name: Upload test videos
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-videos
+          path: target/video/test-recording.mp4
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: target/screenshots/
