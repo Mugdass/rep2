@@ -1,4 +1,4 @@
-name: Java Selenium CI
+name: Java Maven Selenium CI
 
 on:
   push:
@@ -9,60 +9,40 @@ on:
       - main
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      # Step 1: Checkout the repo
+      - name: Checkout code
+        uses: actions/checkout@v3
 
+      # Step 2: Set up JDK 17 (matches your Maven setup)
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: 17
 
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y unzip wget curl
-
+      # Step 3: Install Google Chrome
       - name: Install Google Chrome
-        uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: stable
-
-      - name: Install ChromeDriver for current Chrome
         run: |
-          sudo rm -f /usr/local/bin/chromedriver
-          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
-          echo "Detected Chrome version: $CHROME_VERSION"
-          DRIVER_VERSION=$(curl -sS "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
-          echo "Installing ChromeDriver version: $DRIVER_VERSION"
-          wget -q "https://chromedriver.storage.googleapis.com/${DRIVER_VERSION}/chromedriver_linux64.zip"
-          unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
-          chromedriver --version
+          sudo apt-get update
+          sudo apt-get install -y wget unzip xvfb libxi6 libgconf-2-4
+          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt install -y ./google-chrome-stable_current_amd64.deb
+          google-chrome --version
 
-      - name: Build with Maven
-        run: mvn clean install -B
+      # Step 4: No manual ChromeDriver installation needed
+      # Selenium Manager will automatically download the correct driver
 
-      - name: Run tests
-        run: mvn test -B
+      # Step 5: Run Maven build & tests
+      - name: Build and run tests
+        run: mvn clean test -B
 
+      # Step 6: Upload test reports (optional)
       - name: Upload Surefire Reports
         uses: actions/upload-artifact@v4
         with:
           name: surefire-reports
           path: target/surefire-reports
-
-      - name: Upload Test Video (if any)
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-recording
-          path: target/video/test-recording.mp4
-
-      - name: Upload Screenshots (if any)
-        uses: actions/upload-artifact@v4
-        with:
-          name: screenshots
-          path: target/screenshots/
