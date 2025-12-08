@@ -29,6 +29,7 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven-
 
+      # --- Install Google Chrome ---
       - name: Install Google Chrome
         run: |
           wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
@@ -36,12 +37,11 @@ jobs:
           sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
           google-chrome --version
 
-      - name: Install ChromeDriver (auto-match version)
+      # --- Install ChromeDriver (LATEST_RELEASE to avoid Chrome 143 issue) ---
+      - name: Install ChromeDriver (latest compatible)
         run: |
           sudo apt-get install -y unzip
-          CHROME_VERSION=$(google-chrome --product-version)
-          CHROME_MAJOR=$(echo $CHROME_VERSION | cut -d '.' -f 1)
-          DRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR}")
+          DRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE")
           echo "Using ChromeDriver version: $DRIVER_VERSION"
           wget -q https://chromedriver.storage.googleapis.com/${DRIVER_VERSION}/chromedriver_linux64.zip
           unzip chromedriver_linux64.zip
@@ -49,6 +49,7 @@ jobs:
           sudo chmod +x /usr/local/bin/chromedriver
           chromedriver --version
 
+      # --- Xvfb + screen recording ---
       - name: Start Xvfb + Start Screen Recording
         run: |
           export DISPLAY=:99
@@ -59,23 +60,27 @@ jobs:
             -vcodec libx264 target/video/test-recording.mp4 &
           echo $! > ffmpeg.pid
 
+      # --- Build project ---
       - name: Build
         run: mvn clean install -B
 
+      # --- Run Selenium tests ---
       - name: Run tests
         env:
           DISPLAY: :99
         run: mvn test -B
 
+      # --- Stop FFmpeg safely ---
       - name: Stop recording (safe)
         if: always()
         run: |
           if [ -f ffmpeg.pid ]; then
             kill $(cat ffmpeg.pid) || true
           else
-            echo "No ffmpeg PID found — skipping kill step."
+            echo "Recording not started — skipping kill."
           fi
 
+      # --- Upload video ---
       - name: Upload Selenium Video
         if: always()
         uses: actions/upload-artifact@v4
@@ -83,6 +88,7 @@ jobs:
           name: selenium-video
           path: target/video/test-recording.mp4
 
+      # --- Upload Maven test reports ---
       - name: Upload Surefire reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -90,6 +96,7 @@ jobs:
           name: surefire-reports
           path: target/surefire-reports/
 
+      # --- Upload screenshots (optional) ---
       - name: Upload Screenshots
         if: always()
         uses: actions/upload-artifact@v4
