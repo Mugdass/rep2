@@ -2,61 +2,67 @@ name: Java Maven Selenium CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-24.04
 
     steps:
-      # Step 1: Checkout repository
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up JDK 17
+      # Install dependencies for Chrome & Selenium
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip wget curl gnupg
+
+      # Install Google Chrome stable
+      - name: Install Google Chrome
+        run: |
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      # Ensure ChromeDriver matches Chrome version
+      - name: Install matching ChromeDriver
+        uses: nanasess/setup-chromedriver@v1
+        with:
+          chrome-version: stable
+
+      # Set up JDK (if not using system default)
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: 17
 
-      # Step 3: Install Google Chrome
-      - name: Install Google Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget unzip xvfb libxi6 libgconf-2-4
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt install -y ./google-chrome-stable_current_amd64.deb
-          google-chrome --version
+      # Build Maven project
+      - name: Build with Maven
+        run: mvn clean install -B
 
-      # Step 4: Install Maven (optional, ubuntu-latest already has Maven)
-      - name: Set up Maven
-        uses: actions/setup-java@v3
-        with:
-          distribution: temurin
-          java-version: 17
-          cache: maven
+      # Run tests and save artifacts
+      - name: Run Tests
+        run: mvn test -B
 
-      # Step 5: Run Maven build & tests
-      - name: Build and run tests
-        run: mvn clean test -B
-
-      # Step 6: Upload Surefire test reports
-      - name: Upload Surefire Reports
+      - name: Upload Surefire reports
         uses: actions/upload-artifact@v4
         with:
           name: surefire-reports
-          path: target/surefire-reports
+          path: target/surefire-reports/
 
-      # Step 7: Upload videos/screenshots (if generated)
-      - name: Upload Test Artifacts
+      - name: Upload test screenshots (if any)
         uses: actions/upload-artifact@v4
         with:
-          name: test-artifacts
-          path: |
-            target/video/test-recording.mp4
-            target/screenshots/
+          name: screenshots
+          path: target/screenshots/
+
+      - name: Upload test videos (if any)
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-videos
+          path: target/video/
