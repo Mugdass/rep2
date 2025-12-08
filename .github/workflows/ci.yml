@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:       # Manual trigger
+  schedule:
+    - cron: "*/5 * * * *" # Every 5 minutes (UTC)
 
 jobs:
   build:
@@ -44,5 +47,6 @@ jobs:
         google-chrome --version
         chromedriver --version
 
-    - name: Build with Maven
-      run: mvn clean install -B
+    - name: Run Maven tests
+      run: |
+        mvn clean install -B
